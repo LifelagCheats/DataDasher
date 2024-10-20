@@ -1,4 +1,9 @@
-# DataDasher
+<img src="https://github.com/LifelagCheats/DataDasher/blob/main/Assets/images.jpg" alt="Logo" width="200"/>
+
+<br>
+
+# DataDasher</div>
+
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![Maintained](https://img.shields.io/badge/maintained-Yes!-green)
 ![GitHub contributors](https://img.shields.io/github/contributors/LifelagCheats/DataDasher)
