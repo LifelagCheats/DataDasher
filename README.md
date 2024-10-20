@@ -1,15 +1,18 @@
 # DataDasher
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![Maintained](https://img.shields.io/badge/maintained-Yes!-green)
-![Hacking](https://img.shields.io/badge/Hacking-red)
-![DDoS Tool](https://img.shields.io/badge/DDoS-yellow)  
+![GitHub contributors](https://img.shields.io/github/contributors/LifelagCheats/DataDasher)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/LifelagCheats/DataDasher)
+![GitHub forks](https://img.shields.io/github/forks/LifelagCheats/DataDasher?logoColor=ffff&color=%23ff0000)
+![GitHub Repo stars](https://img.shields.io/github/stars/LifelagCheats/DataDasher?color=%2332cd32)
+
 
 DataDasher is a DDoS tool made for **Real** hackers, this is not made for educational purposes, **this is real hacking**
 
 ## Table of Contents 
 - #### [Features](#features)  
 - #### [Installation](#installation)  
-- #### [To-Do List](#to-do-list)  
+- #### [Upcoming features](#upcoming-features)  
 - #### [Contribution Guidelines](#contribution-guidelines)
 
 ## Features
@@ -53,7 +56,7 @@ CLI is when you execute the script with arguments, like this:
 python DataDasher.py [type of attack, send, slowloris, or SYN] [attack options for send like UDP or TCP] [website name] [port (if needed)] [options like count or payload]
 ```
 
-## To-Do list
+## Upcoming features
 Here are some features that are planned for future implementation:
 
 - [ ] Add new Attack modes
