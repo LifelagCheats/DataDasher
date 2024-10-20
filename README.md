@@ -12,7 +12,7 @@
 ![GitHub Repo stars](https://img.shields.io/github/stars/LifelagCheats/DataDasher?color=%2332cd32)
 
 
-DataDasher is a DDoS tool made for **Real** hackers, this is not made for educational purposes, **this is real hacking**
+DataDasher is an "ethical" DDoS hacking tool designed for penetration testers and security professionals. It provides a suite of features to assess the security posture of web applications and networks in a legal and ethical manner.
 
 ## Table of Contents 
 - #### [Features](#features)  
