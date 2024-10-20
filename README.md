@@ -29,6 +29,20 @@ cd ExeialRR
 python Exeial.py
 pip install -r requirements.txt
 ```
+### Tested Operating Systems
+<table>
+    <tr>
+        <th>Operative system</th>
+        <th> Version </th>
+    </tr>
+    <tr>
+        <td>Windows</td>
+        <td>11/10</td>
+<table>
+Anything below the specified OS version is not guaranteed to work and it's not going to be fixed/added
+ 
+**Any other Unix-based operating system like Mac-OS or Linux should also work, but it's not guaranteed**
+ 
 
 ## Usage
 
