@@ -1,4 +1,4 @@
-<img src="https://github.com/LifelagCheats/DataDasher/blob/main/Assets/images.jpg" alt="Logo" width="200"/>
+<img src="https://github.com/LifelagCheats/DataDasher/blob/main/Assets/DataDasherLogo.png" alt="Logo" width="200"/>
 
 <br>
 
