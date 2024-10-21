@@ -33,9 +33,9 @@ Datadasher offers various features, such as:
 
 ```bash
 git clone https://github.com/Laggy/ExeialRR.git
-cd ExeialRR
-python Exeial.py
+cd DataDasher
 pip install -r requirements.txt
+python DataDasher.py
 ```
 ### Tested Operating Systems
 <table>
