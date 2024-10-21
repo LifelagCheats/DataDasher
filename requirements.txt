@@ -1,7 +1,3 @@
-socket 
-threading 
 requests 
-logging 
 rich 
 prompt_toolkit
-json
