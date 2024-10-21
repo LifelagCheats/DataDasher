@@ -50,7 +50,10 @@ python DataDasher.py
 Anything below the specified OS version is not guaranteed to work and it's not going to be fixed/added
  
 **Any other Unix-based operating system like Mac-OS or Linux should also work, but it's not guaranteed**
- 
+
+ <img src="https://github.com/LifelagCheats/DataDasher/blob/main/Assets/preview.webp" alt="preview" width="800"/>
+
+ <br>
 
 ## Usage
 
