@@ -68,7 +68,6 @@ python DataDasher.py [type of attack, send, slowloris, or SYN] [attack options f
 Here are some features that are planned for future implementation:
 
 - [ ] Add new Attack modes
-- [ ] Add IP spoofing
 - [ ] integrate WHOIS lookups
 
 ### ● Note: Some features are not implemented and are yet to be done
