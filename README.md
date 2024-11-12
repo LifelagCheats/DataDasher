@@ -4,8 +4,6 @@
 
 # DataDasher
 
-</div>
-
 
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![Maintained](https://img.shields.io/badge/maintained-Yes!-green)
@@ -14,8 +12,14 @@
 ![GitHub forks](https://img.shields.io/github/forks/LifelagCheats/DataDasher?logoColor=ffff&color=%23ff0000)
 ![GitHub Repo stars](https://img.shields.io/github/stars/LifelagCheats/DataDasher?color=%2332cd32)
 
+<img src="https://github.com/LifelagCheats/DataDasher/blob/main/Assets/preview.webp" alt="preview" width="800"/>
+
 
 DataDasher is an "ethical" DDoS hacking tool designed for penetration testers and security professionals. It provides a suite of features to assess the security posture of web applications and networks in a legal and ethical manner.
+
+</div>
+
+
 
 ## Table of Contents 
 - #### [Features](#features)  
@@ -57,10 +61,6 @@ python DataDasher.py
 > [!WARNING]
 > Anything below the specified OS version is not guaranteed to work and it's not going to be fixed/added
 > **Any other Unix-based operating system like Mac-OS or Linux should also work, but it's not guaranteed**
-
- <img src="https://github.com/LifelagCheats/DataDasher/blob/main/Assets/preview.webp" alt="preview" width="800"/>
-
- <br>
 
 ## Usage
 
