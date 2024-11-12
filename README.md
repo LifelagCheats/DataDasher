@@ -87,6 +87,8 @@ Contributions are welcome! If you’re interested in helping improve DataDasher,
 - Fork the repository and create a pull request.
 - Share your feedback and suggestions.
 
+**for more information visit the [Contribution Guidelines](https://github.com/LifelagCheats/DataDasher/blob/main/CONTRIBUTING.md)**
+
 Your support is greatly appreciated, as I am a solo developer and still learning. Thank you!
 If you want to contact me, dm `@mylifeislag` by discord.
 
