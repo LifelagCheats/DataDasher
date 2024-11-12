@@ -19,7 +19,8 @@ DataDasher is an "ethical" DDoS hacking tool designed for penetration testers an
 
 ## Table of Contents 
 - #### [Features](#features)  
-- #### [Installation](#installation)  
+- #### [Installation](#installation)
+- #### [Usage](#usage)
 - #### [Upcoming features](#upcoming-features)  
 - #### [Contribution Guidelines](#contribution-guidelines)
 
@@ -50,9 +51,10 @@ python DataDasher.py
         <td>Windows</td>
         <td>11/10</td>
 <table>
-Anything below the specified OS version is not guaranteed to work and it's not going to be fixed/added
- 
-**Any other Unix-based operating system like Mac-OS or Linux should also work, but it's not guaranteed**
+
+> [!WARNING]
+> Anything below the specified OS version is not guaranteed to work and it's not going to be fixed/added
+> **Any other Unix-based operating system like Mac-OS or Linux should also work, but it's not guaranteed**
 
  <img src="https://github.com/LifelagCheats/DataDasher/blob/main/Assets/preview.webp" alt="preview" width="800"/>
 
@@ -73,9 +75,11 @@ Here are some features that are planned for future implementation:
 - [ ] Add new Attack modes
 - [ ] integrate WHOIS lookups
 
-### ● Note: Some features are not implemented and are yet to be done
+> [!NOTE]
+> ### Some features are not implemented and are yet to be done
 
-## ● Contribution Guidelines
+
+## Contribution Guidelines
 Contributions are welcome! If you’re interested in helping improve ExeialRR, please consider the following:
 - Check the issues tab for current tasks.
 - Fork the repository and create a pull request.
