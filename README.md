@@ -80,7 +80,7 @@ Here are some features that are planned for future implementation:
 
 
 ## Contribution Guidelines
-Contributions are welcome! If you’re interested in helping improve ExeialRR, please consider the following:
+Contributions are welcome! If you’re interested in helping improve DataDasher, please consider the following:
 - Check the issues tab for current tasks.
 - Fork the repository and create a pull request.
 - Share your feedback and suggestions.
