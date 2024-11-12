@@ -86,7 +86,22 @@ Contributions are welcome! If you’re interested in helping improve DataDasher,
 - Check the issues tab for current tasks.
 - Fork the repository and create a pull request.
 - Share your feedback and suggestions.
- 
+
 Your support is greatly appreciated, as I am a solo developer and still learning. Thank you!
-If you want to contact me, dm @mylifeislag by discord.
+If you want to contact me, dm `@mylifeislag` by discord.
+
+
+## Contributors
+(thanks to all of you!)
+<div align="center">
+  <a href="https://github.com/LifelagCheats/DataDasher/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=LifelagCheats/DataDasher" />
+  </a>
+</div>
+
+## Star history
+
+[![Star History Chart](https://api.star-history.com/svg?repos=LifelagCheats/DataDasher&type=Date)](https://star-history.com/#LifelagCheats/DataDasher&Date)
+
+
 
