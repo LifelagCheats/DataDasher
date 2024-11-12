@@ -24,6 +24,7 @@ DataDasher is an "ethical" DDoS hacking tool designed for penetration testers an
 - #### [Upcoming features](#upcoming-features)  
 - #### [Contribution Guidelines](#contribution-guidelines)
 
+
 ## Features
 
 Datadasher offers various features, such as:
@@ -32,6 +33,7 @@ Datadasher offers various features, such as:
 - **Send Attacks**: DataDasher offers a variety of send attacks, such as HTTP GET attacks, UDP and TCP, for HTTP GET attacks, the port **does not need** to be specified, as the tool can already find it, althought for UDP and TCP attacks you do need to specify the port
 - **SLOWLORIS AND SYN FLOODS**: DataDasher also offers two types of attacks, SLOWLORIS and SYN floods, as always, you need to specify the port, and options if you need/want to.
 - **VARIETY AND OPTIONS**: You can also customize the options of attack in DataDasher, for example, you can customize amount or requests, packets or payload sent, and talking about payload, you can also customize it, and the rate is not something to forget.
+
 
 ## Installation
 
@@ -73,7 +75,7 @@ python DataDasher.py [type of attack, send, slowloris, or SYN] [attack options f
 Here are some features that are planned for future implementation:
 
 - [ ] Add new Attack modes
-- [ ] integrate WHOIS lookups
+- [x] integrate WHOIS lookups
 
 > [!NOTE]
 > ### Some features are not implemented and are yet to be done
