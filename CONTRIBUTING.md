@@ -1,132 +1,48 @@
-# Contributor Covenant Code of Conduct
+# Contributing to DataDasher
 
-## Our Pledge
+We appreciate your interest in contributing to DataDasher! We welcome contributions from everyone, but to ensure a smooth and collaborative process, please adhere to the following guidelines.
 
-We as members, contributors, and leaders pledge to make participation in our
-community a harassment-free experience for everyone, regardless of age, body
-size, visible or invisible disability, ethnicity, sex characteristics, gender
-identity and expression, level of experience, education, socio-economic status,
-nationality, personal appearance, race, caste, color, religion, or sexual
-identity and orientation.
+## Reporting Bugs
 
-We pledge to act and interact in ways that contribute to an open, welcoming,
-diverse, inclusive, and healthy community.
+When reporting a bug, please create a new issue on GitHub, ensuring it contains the following information:
 
-## Our Standards
+* **Clear and concise title:** Briefly summarize the issue.
+* **Detailed description:** Explain the problem you encountered, including:
+    * Steps to reproduce the bug.
+    * Expected behavior.
+    * Actual behavior. 
+    * Environment details (If posible, provideOS, Python version, DataDasher version, etc.).
+* **Supporting evidence:** If possible, include screenshots, error messages, or log files.
 
-Examples of behavior that contributes to a positive environment for our
-community include:
+## Suggesting Enhancements
 
-* Demonstrating empathy and kindness toward other people
-* Being respectful of differing opinions, viewpoints, and experiences
-* Giving and gracefully accepting constructive feedback
-* Accepting responsibility and apologizing to those affected by our mistakes,
-  and learning from the experience
-* Focusing on what is best not just for us as individuals, but for the overall
-  community
+We encourage suggestions for new features and improvements. When proposing an enhancement:
 
-Examples of unacceptable behavior include:
+* **Open a new issue on GitHub.**
+* **Clearly describe the proposed functionality.**
+* **Explain the benefits of the enhancement and its potential impact.**
+* **Consider providing mockups or examples to illustrate your idea.**
 
-* The use of sexualized language or imagery, and sexual attention or advances of
-  any kind
-* Trolling, insulting or derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information, such as a physical or email address,
-  without their explicit permission
-* Other conduct which could reasonably be considered inappropriate in a
-  professional setting
+## Contributing Code
 
-## Enforcement Responsibilities
+If you'd like to contribute code, follow these steps:
 
-Community leaders are responsible for clarifying and enforcing our standards of
-acceptable behavior and will take appropriate and fair corrective action in
-response to any behavior that they deem inappropriate, threatening, offensive,
-or harmful.
+1. **Fork the repository:** Create a personal copy of the DataDasher repository on your GitHub account.
+2. **Create a new branch:** Branch off from the `main` branch for your specific feature or bug fix. Use a descriptive branch name (e.g., `fix-http-request-error` or `feature-add-logging`).
+3. **Make your changes:** Implement your changes in your branch.
+4. **Adhere to coding style:**  Maintain consistency with the existing codebase's style. Use a linter (e.g., `flake8` or `pylint`) to ensure code quality. If in doubt, match the formatting of surrounding code.
+5. **Write tests (if applicable):** Add or modify tests to cover your changes. Ensure all tests pass before submitting a pull request.
+6. **Commit your changes:**  Write clear and concise commit messages explaining the purpose of each commit.
+7. **Push your branch to your fork:** Upload your branch to your forked repository on GitHub.
+8. **Create a pull request:** Open a pull request against the `main` branch of the original DataDasher repository.  Provide a detailed description of your changes and address any feedback provided during the review process.
 
-Community leaders have the right and responsibility to remove, edit, or reject
-comments, commits, code, wiki edits, issues, and other contributions that are
-not aligned to this Code of Conduct, and will communicate reasons for moderation
-decisions when appropriate.
+## Consequences of Violations
 
-## Scope
+Failure to comply with the contribution guidelines or the Code of Conduct may result in the following consequences:
 
-This Code of Conduct applies within all community spaces, and also applies when
-an individual is officially representing the community in public spaces.
-Examples of representing our community include using an official email address,
-posting via an official social media account, or acting as an appointed
-representative at an online or offline event.
+* **Rejection of contributions:** Pull requests or issues that do not follow these guidelines may be closed without merging.
+* **Temporary or permanent ban from the community:**  In cases of severe or repeated violations of the Code of Conduct, contributors may be banned from participating in the project.
 
-## Enforcement
+By contributing to DataDasher, you agree to abide by these guidelines and our Code of Conduct. We appreciate your cooperation in maintaining a positive and productive community.
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-[INSERT CONTACT METHOD].
-All complaints will be reviewed and investigated promptly and fairly.
-
-All community leaders are obligated to respect the privacy and security of the
-reporter of any incident.
-
-## Enforcement Guidelines
-
-Community leaders will follow these Community Impact Guidelines in determining
-the consequences for any action they deem in violation of this Code of Conduct:
-
-### 1. Correction
-
-**Community Impact**: Use of inappropriate language or other behavior deemed
-unprofessional or unwelcome in the community.
-
-**Consequence**: A private, written warning from community leaders, providing
-clarity around the nature of the violation and an explanation of why the
-behavior was inappropriate. A public apology may be requested.
-
-### 2. Warning
-
-**Community Impact**: A violation through a single incident or series of
-actions.
-
-**Consequence**: A warning with consequences for continued behavior. No
-interaction with the people involved, including unsolicited interaction with
-those enforcing the Code of Conduct, for a specified period of time. This
-includes avoiding interactions in community spaces as well as external channels
-like social media. Violating these terms may lead to a temporary or permanent
-ban.
-
-### 3. Temporary Ban
-
-**Community Impact**: A serious violation of community standards, including
-sustained inappropriate behavior.
-
-**Consequence**: A temporary ban from any sort of interaction or public
-communication with the community for a specified period of time. No public or
-private interaction with the people involved, including unsolicited interaction
-with those enforcing the Code of Conduct, is allowed during this period.
-Violating these terms may lead to a permanent ban.
-
-### 4. Permanent Ban
-
-**Community Impact**: Demonstrating a pattern of violation of community
-standards, including sustained inappropriate behavior, harassment of an
-individual, or aggression toward or disparagement of classes of individuals.
-
-**Consequence**: A permanent ban from any sort of public interaction within the
-community.
-
-## Attribution
-
-This Code of Conduct is adapted from the [Contributor Covenant][homepage],
-version 2.1, available at
-[https://www.contributor-covenant.org/version/2/1/code_of_conduct.html][v2.1].
-
-Community Impact Guidelines were inspired by
-[Mozilla's code of conduct enforcement ladder][Mozilla CoC].
-
-For answers to common questions about this code of conduct, see the FAQ at
-[https://www.contributor-covenant.org/faq][FAQ]. Translations are available at
-[https://www.contributor-covenant.org/translations][translations].
-
-[homepage]: https://www.contributor-covenant.org
-[v2.1]: https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
-[Mozilla CoC]: https://github.com/mozilla/diversity
-[FAQ]: https://www.contributor-covenant.org/faq
-[translations]: https://www.contributor-covenant.org/translations
+10. 
