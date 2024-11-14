@@ -41,6 +41,10 @@ Datadasher offers various features, such as:
 
 ## Installation
 
+**Prerequisites**
+Python 3.8 or higher
+Git (for installation)
+
 ```bash
 git clone https://github.com/Laggy/ExeialRR.git
 cd DataDasher
@@ -64,11 +68,30 @@ python DataDasher.py
 
 ## Usage
 
-There are two options of usage, Normal and CLI.
-normal is when you execute the script like a normal python script, there, you'll get the Interactive TUI with command listing and suggestion.
-CLI is when you execute the script with arguments, like this:
+DataDasher offers two execution modes
+
+### 1. Interactive TUI Mode
+Launch without arguments for a guided experience:
+
 ```bash
-python DataDasher.py [type of attack, send, slowloris, or SYN] [attack options for send like UDP or TCP] [website name] [port (if needed)] [options like count or payload]
+python DataDasher.py
+```
+
+### 2. CLI Mode
+
+Execute specific commands directly:
+```bash
+python DataDasher.py [attack_type] [attack_option] [target] [port] [parameters]
+```
+
+**Example commands:**
+
+```bash
+# HTTP GET test
+python DataDasher.py send http example.com
+
+# UDP test with custom port
+python DataDasher.py send udp example.com 80 --count 1000
 ```
 
 ## Upcoming features
