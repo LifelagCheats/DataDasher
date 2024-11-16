@@ -46,7 +46,7 @@ Python 3.8 or higher
 Git (for installation)
 
 ```bash
-git clone https://github.com/Laggy/ExeialRR.git
+git clone https://github.com/LifelagCheats/DataDasher
 cd DataDasher
 pip install -r requirements.txt
 python DataDasher.py
