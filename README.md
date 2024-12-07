@@ -60,11 +60,15 @@ python DataDasher.py
     <tr>
         <td>Windows</td>
         <td>11/10</td>
+    </tr>
+    <tr>
+        <td>Linux</td>
+        <td>Arch, Debian, Ubuntu</td>
+    </tr>
 <table>
 
 > [!WARNING]
-> Anything below the specified OS version is not guaranteed to work and it's not going to be fixed/added
-> **Any other Unix-based operating system like Mac-OS or Linux should also work, but it's not guaranteed**
+> Anything below the specified OS version is not guaranteed to work and it's not going to be fixed 
 
 ## Usage
 
