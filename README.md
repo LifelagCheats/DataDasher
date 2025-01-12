@@ -6,7 +6,7 @@
 
 
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
-![Maintained](https://img.shields.io/badge/maintained-Yes!-green)
+![Maintained](https://img.shields.io/badge/maintained-No-red)
 ![GitHub contributors](https://img.shields.io/github/contributors/LifelagCheats/DataDasher)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/LifelagCheats/DataDasher)
 ![GitHub forks](https://img.shields.io/github/forks/LifelagCheats/DataDasher?logoColor=ffff&color=%23ff0000)
